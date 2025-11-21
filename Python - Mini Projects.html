@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Search Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        }
+
+        /* Color palette */
+        :root {
+            --primary: #3b82f6;
+            --accent-active: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --neutral-light: #f1f5f9;
+            --neutral-dark: #0f172a;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+        }
+
+        .array-container {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 2rem 1rem;
+            min-height: 200px;
+        }
+
+        .array-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 80px;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--neutral-light);
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: default;
+        }
+
+        .array-item.inactive {
+            opacity: 0.3;
+            transform: scale(0.8);
+            border-color: rgba(100, 116, 139, 0.3);
+        }
+
+        .array-item.active-left {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-color: #60a5fa;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+            animation: pulse-blue 0.8s ease-in-out;
+        }
+
+        .array-item.active-right {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-color: #c4b5fd;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+            animation: pulse-purple 0.8s ease-in-out;
+        }
+
+        .array-item.midpoint {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-color: #fbbf24;
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+            animation: pulse-yellow 0.6s ease;
+            transform: scale(1.15);
+        }
+
+        .array-item.found {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: #6ee7b7;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 1);
+            animation: pulse-success 0.8s ease;
+            transform: scale(1.2);
+        }
+
+        .array-item.not-found {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: #f87171;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+
+        .array-item.eliminated {
+            opacity: 0.15;
+            background: var(--card-bg);
+            border-color: rgba(100, 116, 139, 0.2);
+            transform: scale(0.9);
+        }
+
+        .index-label {
+            position: absolute;
+            top: -30px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        @keyframes pulse-blue {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes pulse-purple {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes pulse-yellow {
+            0%, 100% { transform: scale(1.15); box-shadow: 0 0 25px rgba(245, 158, 11, 0.8); }
+            50% { transform: scale(1.25); box-shadow: 0 0 35px rgba(245, 158, 11, 1); }
+        }
+
+        @keyframes pulse-success {
+            0%, 100% { transform: scale(1.2); }
+            50% { transform: scale(1.3); }
+        }
+
+        .info-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .info-label {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            color: var(--neutral-light);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .button-base {
+            padding: 0.75rem 1.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button-base:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .button-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+        }
+
+        .button-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .button-secondary {
+            background: var(--card-bg);
+            color: var(--neutral-light);
+            border: 2px solid var(--border-color);
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            background: #334155;
+            border-color: #64748b;
+            transform: translateY(-2px);
+        }
+
+        .button-secondary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .step-indicator {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--accent-active);
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: var(--neutral-light);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .steps-log {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .steps-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .steps-log::-webkit-scrollbar-track {
+            background: var(--card-bg);
+            border-radius: 10px;
+        }
+
+        .steps-log::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 10px;
+        }
+
+        .steps-log::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .input-field {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            color: var(--neutral-light);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .input-field::placeholder {
+            color: #64748b;
+        }
+
+        .result-animation {
+            animation: slideIn 0.6s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid #10b981;
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid #ef4444;
+        }
+
+        .highlight-comparison {
+            animation: flash 0.4s ease;
+        }
+
+        @keyframes flash {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+            }
+        }
+
+        .step-item {
+            padding: 1rem;
+            background: var(--card-bg);
+            border-left: 3px solid var(--accent-active);
+            border-radius: 0.25rem;
+            animation: slideIn 0.4s ease;
+        }
+
+        .comparison {
+            color: #3b82f6;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .range-highlight {
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .array-item {
+                width: 45px;
+                height: 70px;
+                font-size: 0.9rem;
+            }
+
+            .button-base {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.9rem;
+            }
+
+            .info-value {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen py-8 px-4">
+        <!-- Header -->
+        <div class="max-w-6xl mx-auto mb-8">
+            <div class="text-center mb-8">
+                <h1 class="text-5xl font-bold mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+                    Binary Search Visualizer
+                </h1>
+                <p class="text-gray-400 text-lg">
+                    Watch how binary search efficiently finds elements in sorted arrays
+                </p>
+            </div>
+
+            <!-- Controls Section -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div>
+                    <label class="block text-gray-400 text-sm font-semibold mb-2">Array Elements (comma-separated)</label>
+                    <input 
+                        type="text" 
+                        id="arrayInput" 
+                        class="input-field" 
+                        placeholder="e.g., 2, 5, 8, 12, 16, 23, 38, 45, 56, 67, 78"
+                        value="2, 5, 8, 12, 16, 23, 38, 45, 56, 67, 78"
+                    >
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm font-semibold mb-2">Target Value</label>
+                    <input 
+                        type="number" 
+                        id="targetInput" 
+                        class="input-field" 
+                        placeholder="Enter target value"
+                        value="23"
+                    >
+                </div>
+                <div class="flex items-end gap-2">
+                    <button class="button-base button-primary flex-1" id="startBtn">
+                        Start Search
+                    </button>
+                    <button class="button-base button-secondary" id="resetBtn">
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Array Visualization -->
+                <div class="lg:col-span-2">
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700 p-6">
+                        <h2 class="text-xl font-bold text-gray-200 mb-4">Array Visualization</h2>
+                        <div class="array-container" id="arrayContainer">
+                            <!-- Array items will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Steps Log -->
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700 p-6 mt-6">
+                        <h2 class="text-xl font-bold text-gray-200 mb-4">Search Steps</h2>
+                        <div class="steps-log" id="stepsLog">
+                            <p class="text-gray-500 text-center py-4">Steps will appear here...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Panel -->
+                <div>
+                    <!-- Comparisons Count -->
+                    <div class="info-box">
+                        <div class="info-label">Comparisons Made</div>
+                        <div class="info-value" id="comparisonCount">0</div>
+                    </div>
+
+                    <!-- Current Range -->
+                    <div class="info-box">
+                        <div class="info-label">Search Range</div>
+                        <div class="text-gray-300 font-mono text-sm" id="rangeDisplay">
+                            Left: - | Mid: - | Right: -
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="info-box">
+                        <div class="info-label">Status</div>
+                        <div id="statusDisplay" class="text-yellow-400 font-semibold">
+                            Ready to search...
+                        </div>
+                    </div>
+
+                    <!-- Result -->
+                    <div id="resultBox" style="display: none;" class="result-animation">
+                        <div class="info-box">
+                            <div class="info-label">Result</div>
+                            <div id="resultContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700 p-4 mt-6">
+                        <div class="info-label mb-3">Legend</div>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-4 h-4 bg-blue-500 rounded border-2 border-blue-400"></div>
+                                <span class="text-gray-400">Active Left Range</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-4 h-4 bg-purple-500 rounded border-2 border-purple-400"></div>
+                                <span class="text-gray-400">Active Right Range</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-4 h-4 bg-amber-500 rounded border-2 border-amber-400"></div>
+                                <span class="text-gray-400">Midpoint (Checked)</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-4 h-4 bg-green-500 rounded border-2 border-green-400"></div>
+                                <span class="text-gray-400">Found!</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-4 h-4 bg-red-500 rounded border-2 border-red-400"></div>
+                                <span class="text-gray-400">Not Found</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class BinarySearchVisualizer {
+            constructor() {
+                this.array = [];
+                this.target = null;
+                this.isSearching = false;
+                this.comparisons = 0;
+                this.steps = [];
+                this.animationDelay = 800; // Delay between steps for visibility
+
+                this.arrayContainer = document.getElementById('arrayContainer');
+                this.arrayInput = document.getElementById('arrayInput');
+                this.targetInput = document.getElementById('targetInput');
+                this.startBtn = document.getElementById('startBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.stepsLog = document.getElementById('stepsLog');
+                this.comparisonCountEl = document.getElementById('comparisonCount');
+                this.rangeDisplayEl = document.getElementById('rangeDisplay');
+                this.statusDisplayEl = document.getElementById('statusDisplay');
+                this.resultBox = document.getElementById('resultBox');
+                this.resultContent = document.getElementById('resultContent');
+
+                this.attachEventListeners();
+            }
+
+            attachEventListeners() {
+                this.startBtn.addEventListener('click', () => this.handleSearch());
+                this.resetBtn.addEventListener('click', () => this.reset());
+            }
+
+            handleSearch() {
+                if (this.isSearching) return;
+
+                const arrayInput = this.arrayInput.value.trim();
+                const target = parseInt(this.targetInput.value);
+
+                if (!arrayInput || isNaN(target)) {
+                    alert('Please enter both array elements and target value');
+                    return;
+                }
+
+                // Parse and sort array
+                this.array = arrayInput
+                    .split(',')
+                    .map(v => parseInt(v.trim()))
+                    .filter(v => !isNaN(v));
+
+                if (this.array.length === 0) {
+                    alert('Please enter valid array elements');
+                    return;
+                }
+
+                // Sort array
+                this.array.sort((a, b) => a - b);
+                this.target = target;
+
+                this.reset();
+                this.renderArray();
+                this.isSearching = true;
+                this.startBtn.disabled = true;
+                this.arrayInput.disabled = true;
+                this.targetInput.disabled = true;
+
+                // Start search with delay
+                setTimeout(() => this.performBinarySearch(), 500);
+            }
+
+            async performBinarySearch() {
+                let left = 0;
+                let right = this.array.length - 1;
+                let foundIndex = -1;
+
+                this.addStep(`Starting binary search for ${this.target}`, 'info');
+                this.addStep(`Array: [${this.array.join(', ')}]`, 'info');
+                await this.sleep(this.animationDelay);
+
+                while (left <= right) {
+                    const mid = Math.floor((left + right) / 2);
+                    this.comparisons++;
+
+                    // Update visual
+                    this.updateRange(left, mid, right);
+                    this.renderArray(left, mid, right);
+
+                    const midValue = this.array[mid];
+                    this.addStep(`Comparison #${this.comparisons}: Checking index ${mid} (value: ${midValue})`, 'comparison', { mid });
+
+                    await this.sleep(this.animationDelay);
+
+                    if (midValue === this.target) {
+                        foundIndex = mid;
+                        this.addStep(`✓ Found ${this.target} at index ${mid}!`, 'found');
+                        break;
+                    } else if (midValue < this.target) {
+                        this.addStep(`${midValue} < ${this.target} → Search RIGHT`, 'range');
+                        left = mid + 1;
+                    } else {
+                        this.addStep(`${midValue} > ${this.target} → Search LEFT`, 'range');
+                        right = mid - 1;
+                    }
+
+                    await this.sleep(this.animationDelay);
+                }
+
+                // Render final result
+                this.renderArray(-1, -1, -1, foundIndex);
+                await this.sleep(300);
+
+                if (foundIndex !== -1) {
+                    this.showFoundResult(foundIndex);
+                } else {
+                    this.showNotFoundResult();
+                }
+
+                this.isSearching = false;
+                this.startBtn.disabled = false;
+                this.arrayInput.disabled = false;
+                this.targetInput.disabled = false;
+            }
+
+            renderArray(left = -1, mid = -1, right = -1, foundIndex = -1) {
+                this.arrayContainer.innerHTML = '';
+
+                this.array.forEach((value, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'array-item';
+                    div.textContent = value;
+
+                    const indexLabel = document.createElement('div');
+                    indexLabel.className = 'index-label';
+                    indexLabel.textContent = index;
+                    div.appendChild(indexLabel);
+
+                    if (foundIndex === index) {
+                        div.classList.add('found');
+                    } else if (index === mid) {
+                        div.classList.add('midpoint');
+                    } else if (index >= left && index <= right && left !== -1) {
+                        if (index < mid) {
+                            div.classList.add('active-left');
+                        } else if (index > mid) {
+                            div.classList.add('active-right');
+                        }
+                    } else if (left !== -1 || right !== -1) {
+                        div.classList.add('eliminated');
+                    }
+
+                    this.arrayContainer.appendChild(div);
+                });
+            }
+
+            updateRange(left, mid, right) {
+                this.rangeDisplayEl.innerHTML = `
+                    <div class="font-mono">
+                        <span>Left: <span class="text-blue-400">${left}</span></span> | 
+                        <span>Mid: <span class="text-amber-400">${mid}</span></span> | 
+                        <span>Right: <span class="text-purple-400">${right}</span></span>
+                    </div>
+                `;
+            }
+
+            addStep(text, type = 'default', data = {}) {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step-item';
+
+                let icon = '•';
+                let color = 'text-blue-400';
+
+                if (type === 'comparison') {
+                    icon = '🔍';
+                    color = 'text-blue-400';
+                } else if (type === 'range') {
+                    icon = '→';
+                    color = 'text-purple-400';
+                } else if (type === 'found') {
+                    icon = '✓';
+                    color = 'text-green-400';
+                } else if (type === 'info') {
+                    icon = 'ℹ';
+                    color = 'text-gray-400';
+                }
+
+                stepDiv.innerHTML = `<div class="flex items-start gap-3">
+                    <span class="${color} font-bold text-lg flex-shrink-0">${icon}</span>
+                    <span class="text-gray-300 text-sm">${text}</span>
+                </div>`;
+
+                this.stepsLog.appendChild(stepDiv);
+                this.stepsLog.scrollTop = this.stepsLog.scrollHeight;
+
+                this.comparisonCountEl.textContent = this.comparisons;
+            }
+
+            showFoundResult(index) {
+                this.statusDisplayEl.textContent = '✓ Element Found!';
+                this.statusDisplayEl.className = 'text-green-400 font-semibold';
+
+                this.resultContent.innerHTML = `
+                    <div class="badge badge-success">
+                        ✓ Success!
+                    </div>
+                    <div class="text-gray-300 space-y-2">
+                        <p><span class="text-green-400 font-bold">${this.target}</span> found at index <span class="text-amber-400 font-bold">${index}</span></p>
+                        <p class="text-sm text-gray-400">Comparisons needed: <span class="text-blue-400 font-bold">${this.comparisons}</span></p>
+                    </div>
+                `;
+
+                this.resultBox.style.display = 'block';
+            }
+
+            showNotFoundResult() {
+                this.statusDisplayEl.textContent = '✗ Element Not Found';
+                this.statusDisplayEl.className = 'text-red-400 font-semibold';
+
+                this.resultContent.innerHTML = `
+                    <div class="badge badge-danger">
+                        ✗ Not Found
+                    </div>
+                    <div class="text-gray-300 space-y-2">
+                        <p><span class="text-red-400 font-bold">${this.target}</span> is not in the array</p>
+                        <p class="text-sm text-gray-400">Comparisons made: <span class="text-blue-400 font-bold">${this.comparisons}</span></p>
+                    </div>
+                `;
+
+                this.resultBox.style.display = 'block';
+            }
+
+            reset() {
+                this.comparisons = 0;
+                this.steps = [];
+                this.stepsLog.innerHTML = '<p class="text-gray-500 text-center py-4">Steps will appear here...</p>';
+                this.comparisonCountEl.textContent = '0';
+                this.rangeDisplayEl.innerHTML = 'Left: - | Mid: - | Right: -';
+                this.statusDisplayEl.textContent = 'Ready to search...';
+                this.statusDisplayEl.className = 'text-yellow-400 font-semibold';
+                this.resultBox.style.display = 'none';
+                this.arrayContainer.innerHTML = '';
+                this.isSearching = false;
+                this.startBtn.disabled = false;
+                this.arrayInput.disabled = false;
+                this.targetInput.disabled = false;
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize visualizer on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            new BinarySearchVisualizer();
+        });
+    </script>
+</body>
+</html>
